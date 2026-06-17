@@ -15,7 +15,9 @@
 				"esbenp.prettier-vscode",
 				"DavidAnson.vscode-markdownlint",
 				"bierner.markdown-mermaid",
-				"pomdtr.markdown-kroki"
+				"pomdtr.markdown-kroki",
+				"swiftlang.swift",
+				"vadimcn.vscode-lldb"
 			]
 		}
 	},
@@ -32,5 +34,12 @@
 	// Use 'forwardPorts' to make a list of ports inside the container available locally.
 	// "forwardPorts": [],
 	// "containerEnv": {},
-	"postStartCommand": "sudo /usr/local/share/docker-init.sh"
+	"postStartCommand": "sudo /usr/local/share/docker-init.sh",
+
+	// SDK (Swift-Toolchain) automatisch bei Container-Erstellung installieren,
+	// damit es nach einem Neustart/Rebuild nicht manuell nachgeholt werden muss.
+	"onCreateCommand": "bash scripts/install-sdk.sh",
+
+	// Backend-Dependencies auflösen, sobald ein backend/Package.swift existiert.
+	"postCreateCommand": "bash -c 'source $HOME/.local/share/swiftly/env.sh 2>/dev/null || true; if [ -f backend/Package.swift ]; then swift package --package-path backend resolve; fi'"
 }
