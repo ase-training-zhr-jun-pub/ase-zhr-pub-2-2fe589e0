@@ -64,5 +64,6 @@ storybook-static/
 # Playwright / Cypress
 /playwright-report/
 /playwright/.cache/
+.playwright-mcp/
 /cypress/screenshots/
 /cypress/videos/

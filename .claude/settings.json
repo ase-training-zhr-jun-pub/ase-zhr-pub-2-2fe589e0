@@ -1,18 +1,34 @@
 {
-    "apiKeyHelper": "echo $ANTHROPIC_API_KEY",
-    "model": "claude-sonnet-4-6",
-    "statusLine": {
-        "type": "command",
-        "command": "$CLAUDE_PROJECT_DIR/.claude/statusline.sh"
-    },
-    "attribution": {
-        "commit": "",
-        "pr": ""
-    },
-    "hooks": {},
-    "enableAllProjectMcpServers": true,
-    "enabledMcpjsonServers": [
-        "context7",
-        "playwright"
+  "apiKeyHelper": "echo $ANTHROPIC_API_KEY",
+  "attribution": {
+    "commit": "",
+    "pr": ""
+  },
+  "model": "claude-sonnet-4-6",
+  "enableAllProjectMcpServers": true,
+  "enabledMcpjsonServers": [
+    "context7",
+    "playwright"
+  ],
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "f=$(jq -r '.tool_input.file_path // empty'); case \"$f\" in *.py) \"$CLAUDE_PROJECT_DIR/backend/.venv/bin/ruff\" format \"$f\" >&2 ;; esac"
+          }
+        ]
+      }
     ]
+  },
+  "statusLine": {
+    "type": "command",
+    "command": "$CLAUDE_PROJECT_DIR/.claude/statusline.sh"
+  },
+  "enabledPlugins": {
+    "pyright-lsp@claude-plugins-official": true,
+    "typescript-lsp@claude-plugins-official": true
+  }
 }
