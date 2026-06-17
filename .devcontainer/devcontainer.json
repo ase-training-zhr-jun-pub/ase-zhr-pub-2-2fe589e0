@@ -16,8 +16,7 @@
 				"DavidAnson.vscode-markdownlint",
 				"bierner.markdown-mermaid",
 				"pomdtr.markdown-kroki",
-				"swiftlang.swift-vscode",
-				"llvm-vs-code-extensions.lldb-dap"
+				"ms-python.python"
 			]
 		}
 	},
@@ -36,10 +35,11 @@
 	// "containerEnv": {},
 	"postStartCommand": "sudo /usr/local/share/docker-init.sh",
 
-	// SDK (Swift-Toolchain) automatisch bei Container-Erstellung installieren,
+	// SDK (Python-Toolchain) automatisch bei Container-Erstellung installieren,
 	// damit es nach einem Neustart/Rebuild nicht manuell nachgeholt werden muss.
 	"onCreateCommand": "bash scripts/install-sdk.sh",
 
-	// Backend-Dependencies auflösen, sobald ein backend/Package.swift existiert.
-	"postCreateCommand": "bash -c 'source $HOME/.local/share/swiftly/env.sh 2>/dev/null || true; if [ -f backend/Package.swift ]; then swift package --package-path backend resolve; fi'"
+	// Backend-Dependencies (FastAPI) in einem venv installieren, sobald eine
+	// backend/requirements.txt existiert.
+	"postCreateCommand": "bash -c 'if [ -f backend/requirements.txt ]; then python3 -m venv backend/.venv && backend/.venv/bin/pip install -r backend/requirements.txt; fi'"
 }

@@ -52,11 +52,11 @@ den Prototyp-Umfang geringer als der konkrete Tempo-Verlust durch die Swift-Buil
   für den überschaubaren Prototyp-Umfang akzeptiert, mittelfristig Einarbeitung nötig.
 - **Dynamische Typisierung:** Typsicherheit nur über Tooling-Disziplin (Type Hints,
   optional `mypy`/`pyright`).
-- **Swift-Setup wird obsolet:** `scripts/install-sdk.sh`, `.swift-version` und die
-  Swift-Teile der Devcontainer-Konfiguration referenzieren einen nicht mehr genutzten
-  Stack → siehe technische Schuld **TS-4**.
+- **Swift-Setup ersetzt:** Die SDK-Einrichtung wurde von Swift auf Python umgestellt —
+  `scripts/install-sdk.sh` installiert nun die Python-Toolchain, der Devcontainer nutzt die
+  `ms-python.python`-Extension und richtet im `postCreateCommand` ein venv ein;
+  `.swift-version` wurde entfernt.
 
 ## Offene Punkte
 
-- Aufräumen des Swift-Setups (Devcontainer, Swiftly-Skript, `.swift-version`) — TS-4.
 - Bei Bedarf bleibt der in ADR-001 genannte Fallback **Spring Boot** möglich.
