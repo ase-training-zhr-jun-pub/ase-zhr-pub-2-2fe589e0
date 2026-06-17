@@ -24,33 +24,56 @@ das Backend von **Calvin**, INNOQs internem Raum- und Arbeitsplatzbuchungssystem
 
 ```text
 backend/
-├── main.py               # FastAPI-App + Endpunkte (aktuell der gesamte Service)
+├── main.py               # FastAPI-App, CORS, Lifespan (init_db + seed), Router-Registrierung
+├── database.py           # SQLite-Verbindung (+ Lock), Schema-Init
+├── schemas.py            # Pydantic-Modelle an der API-Grenze
+├── repository.py         # Datenzugriff (SQL), keine Geschäftslogik
+├── service.py            # Buchungslogik, Verfügbarkeit, Doppelbuchungsschutz
+├── auth.py               # Basic-Auth-Dependency -> nutzer_id (ADR-003)
+├── seed.py               # Beispieldaten (spiegelt SPA-Mock-Buchungen)
+├── routers/
+│   ├── verfuegbarkeit.py # GET /api/verfuegbarkeit, GET /api/belegungen
+│   └── buchungen.py      # GET/POST /api/buchungen
 ├── requirements.txt      # Runtime-Abhängigkeiten (fastapi, uvicorn)
 ├── requirements-dev.txt  # Dev-Tools (ruff)
+├── calvin.db             # SQLite-Datei (nicht eingecheckt, beim Start geseedet)
 ├── README.md             # Kurzanleitung Entwicklung
 ├── CLAUDE.md             # diese Datei
 └── .venv/                # virtuelle Umgebung (nicht eingecheckt)
 ```
 
-Wenn der Service wächst: neue Module nach Verantwortung trennen (z. B. `routers/`,
-`services/`, `models/`, `schemas/`) statt alles in `main.py` zu belassen.
+Module liegen flach unter `backend/` und importieren sich absolut (z. B.
+`import service`); uvicorn läuft mit `main:app` aus `backend/`, daher ist das
+Verzeichnis auf dem `sys.path`.
 
 ## Architektur
 
-Aktuell **ein einzelner, ungeschichteter Service**: `main.py` enthält App-Setup,
-Middleware und Endpunkte in einer Datei. Das ist für den Prototyp-Umfang
-(`/api/hello`-Smoke-Test) bewusst so.
+**Layered Architecture**: Router/Controller (HTTP, `routers/`) → Service
+(`service.py`, Buchungslogik & Doppelbuchungsschutz) → Repository (`repository.py`,
+SQL) → SQLite (`database.py`). Pydantic-Schemas (`schemas.py`) an der API-Grenze.
 
-**Zielbild** bei wachsender Buchungslogik: **Layered Architecture** —
-Router/Controller (HTTP) → Service (Buchungslogik, Doppelbuchungsschutz) →
-Repository/Persistenz. Pydantic-Schemas an der API-Grenze. Doppelbuchungen müssen
-serverseitig verhindert werden (Qualitätsziel #1 „Zuverlässigkeit", arc42 Kap. 10).
+**Doppelbuchungsschutz** (Qualitätsziel #1 „Zuverlässigkeit", arc42 Kap. 10): In
+`service.erstelle_buchung` laufen Überschneidungsprüfung und Insert atomar in einer
+`BEGIN IMMEDIATE`-Transaktion, zusätzlich durch ein prozessweites Lock serialisiert.
+Bei Kollision → HTTP 409.
 
 ## Wichtige Dateien
 
-- `main.py` — FastAPI-App `app`, CORS-Middleware, Endpunkt `GET /api/hello`
-- `requirements.txt` — Runtime-Deps
-- `requirements-dev.txt` — Dev-Deps (Ruff)
+- `main.py` — FastAPI-App `app`, CORS, Lifespan, Router-Registrierung, `GET /api/hello`
+- `service.py` — Geschäftslogik inkl. `DoppelbuchungError`
+- `schemas.py` — `BuchungAnfrage`, `Buchung`, `Verfuegbarkeit`, `Belegung`
+- `auth.py` — `nutzer_id`-Dependency (Basic-Auth ohne Passwort)
+- `requirements.txt` / `requirements-dev.txt` — Runtime- / Dev-Deps
+
+## Endpunkte
+
+| Methode | Pfad | Auth | Story | Zweck |
+|---|---|---|---|---|
+| GET | `/api/hello` | – | – | Smoke-Test |
+| GET | `/api/verfuegbarkeit?raum_id=&datum=&von=&bis=` | – | CLVN-010 | Verfügbarkeit eines Raums prüfen |
+| GET | `/api/belegungen?standort_id=&datum=` | – | CLVN-010 | Belegte Zeitfenster aller Räume (Trefferliste) |
+| POST | `/api/buchungen` | Basic | CLVN-019 | Buchung absenden (409 bei Doppelbuchung) |
+| GET | `/api/buchungen` | Basic | CLVN-023 | Eigene Buchungen auflisten |
 
 ## Wichtige Bash-Commands
 
