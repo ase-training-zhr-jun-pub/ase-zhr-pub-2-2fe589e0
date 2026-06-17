@@ -1,0 +1,50 @@
+#!/bin/bash
+
+# Findet das Epic anhand der übergebenen Argumente und listet die darin
+# referenzierten User Stories samt Status ihrer Ticket-Datei (OFFEN/VORHANDEN).
+# Dadurch erkennt der Skill, für welche Story noch ein Ticket fehlt, und es
+# entstehen keine doppelten Ticketnummern.
+#
+# Usage: ./list-open-stories <epic-id|epic-name|pfad>
+#   z.B. ./list-open-stories CLVN-001
+#        ./list-open-stories raeume-finden
+#        ./list-open-stories docs/produkt/backlog/CLVN-001-EPIC-raeume-finden.md
+
+set -euo pipefail
+
+BACKLOG_DIR="docs/produkt/backlog"
+ARG="${*:-}"
+
+if [ -z "$ARG" ]; then
+  echo "Fehler: Bitte das Epic über die Argumente übergeben (z.B. CLVN-001)." >&2
+  exit 1
+fi
+
+# Epic-Datei auflösen: direkter Pfad oder Suche im Backlog
+if [ -f "$ARG" ]; then
+  EPIC_FILE="$ARG"
+else
+  EPIC_FILE=$(find "$BACKLOG_DIR" -name "*EPIC*" | grep -iF -- "$ARG" | head -1 || true)
+fi
+
+if [ -z "${EPIC_FILE:-}" ] || [ ! -f "$EPIC_FILE" ]; then
+  echo "Fehler: Kein Epic gefunden für '$ARG' in $BACKLOG_DIR." >&2
+  exit 1
+fi
+
+echo "Epic: $EPIC_FILE"
+echo "Referenzierte User Stories:"
+
+FOUND=0
+while read -r FILENAME; do
+  FOUND=1
+  if [ -f "$BACKLOG_DIR/$FILENAME" ]; then
+    echo "  VORHANDEN  $FILENAME"
+  else
+    echo "  OFFEN      $FILENAME"
+  fi
+done < <(grep -oE 'CLVN-[0-9]+-STORY-[a-z0-9-]+\.md' "$EPIC_FILE" | sort -u)
+
+if [ "$FOUND" -eq 0 ]; then
+  echo "  (keine User-Story-Referenzen im Epic gefunden)"
+fi
