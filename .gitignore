@@ -67,3 +67,6 @@ storybook-static/
 .playwright-mcp/
 /cypress/screenshots/
 /cypress/videos/
+
+# Claude Code local overrides
+.claude/settings.local.json
