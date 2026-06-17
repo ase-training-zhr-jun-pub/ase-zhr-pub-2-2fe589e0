@@ -26,6 +26,12 @@ Diese User Story ist zentral für das Epic "Raum buchen", da sie den Übergang v
 - [ ] Die Auswahl kann vor der Bestätigung geändert werden
 - [ ] Nach Bestätigung wird der Mitarbeiter zur Eingabe weiterer Buchungsdetails weitergeleitet
 
+## Subtasks
+
+- [CLVN-028 Raum in der Trefferliste auswählen und hervorheben](/docs/produkt/backlog/CLVN-028-TASK-raum-auswaehlen-hervorheben.md)
+- [CLVN-029 Auswahl-Zusammenfassung mit Raumdetails und Zeitraum anzeigen](/docs/produkt/backlog/CLVN-029-TASK-auswahl-zusammenfassung-anzeigen.md)
+- [CLVN-030 Auswahl bestätigen und zum Buchungsschritt weiterleiten](/docs/produkt/backlog/CLVN-030-TASK-auswahl-bestaetigen-weiterleiten.md)
+
 ## Betroffene Persona
 
 [INNOQ-Mitarbeiter](/docs/produkt/personas/innoq-mitarbeiter.md)
