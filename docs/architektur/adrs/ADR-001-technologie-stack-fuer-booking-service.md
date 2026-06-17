@@ -21,6 +21,9 @@ maßgeblich von der vorhandenen Erfahrung getrieben.
 - **REST-API:** Der Service stellt eine REST-Schnittstelle (JSON über HTTPS) bereit.
 - **Dateibasierte Datenbank:** Kompatibilität mit einer dateibasierten DB (SQLite, H2, …).
 - **Okta perspektivisch:** Eine spätere Okta-Integration (OAuth2/OIDC) muss möglich sein.
+  Für den Prototyp wird Okta zurückgestellt; stattdessen Basic-Auth ohne Passwörter
+  (siehe [ADR-003](ADR-003-basic-auth-statt-okta-im-prototyp.md)). Die Technologiewahl
+  muss die spätere Okta-Anbindung dennoch erlauben.
 - **Schnelle Entwicklung:** Geringe Reibung beim Aufsetzen und Iterieren.
 
 ## Betrachtete Optionen
@@ -106,8 +109,9 @@ wichtigsten Treiber: Die Java-Kenntnisse sind veraltet, was das Tempo bremst.
 
 **Negativ / Risiken**
 - **Okta:** Es gibt keinen fertigen „Starter"; die Resource-Server-Validierung (JWKS,
-  Issuer/Audience) muss manuell mit JWTKit umgesetzt werden. → Früh ein kleines Spike
-  einplanen, um das Risiko zu verifizieren.
+  Issuer/Audience) muss manuell mit JWTKit umgesetzt werden. → Im Prototyp **nicht relevant**,
+  da Basic-Auth ohne Passwörter genutzt wird ([ADR-003](ADR-003-basic-auth-statt-okta-im-prototyp.md));
+  vor dem Produktivgang ein kleines Spike zur Okta-Anbindung einplanen.
 - **Ökosystem/Hosting:** Weniger verbreiteter Stack; Deployment- und Bibliotheks-Lücken
   möglich. → Bei Bedarf Fallback auf **Spring Boot** (Option 2), das alle Anforderungen
   ebenfalls erfüllt und bei Okta/Ökosystem stärker ist.

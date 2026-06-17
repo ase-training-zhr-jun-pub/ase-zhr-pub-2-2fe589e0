@@ -64,6 +64,8 @@ GL --> Calvin : Sieht Reports
 
 Das Calvin-System besteht aus einer Single Page Application (SPA) und einem separaten Booking Service. Diese Architektur wurde für die Prototyping-Phase optimiert und ermöglicht eine klare Trennung zwischen Benutzeroberfläche und Geschäftslogik.
 
+Die **Ressourcen-Stammdaten** (Standorte, Räume, Ausstattung) sind als **Mock-Daten in der SPA** hinterlegt; ein separater Resource-Service entfällt (siehe [ADR-002](../architektur/adrs/ADR-002-ressourcendaten-als-mock-in-der-spa.md)). Der **Booking Service arbeitet ausschließlich mit den IDs** aus diesen Mock-Daten.
+
 ```plantuml
 @startuml
 !theme plain
@@ -74,13 +76,13 @@ actor "Consultant" as consultant
 actor "Geschäftsleitung" as gl
 
 package "Calvin System" {
-    component "SPA\n(Single Page Application)" as spa
-    component "Booking Service" as booking
+    component "SPA\n(Single Page Application)\n+ Ressourcen-Mock-Daten\n(Standorte, Räume, Ausstattung)" as spa
+    component "Booking Service\n(arbeitet nur mit IDs)" as booking
 }
 
 consultant --> spa : Bucht Räume &\nArbeitsplätze
 gl --> spa : Sieht Reports
-spa --> booking : REST API\n(JSON)
+spa --> booking : REST API (JSON)\nBasic-Auth ohne Passwörter\nBuchungen referenzieren IDs
 
 @enduml
 ```
@@ -89,18 +91,26 @@ spa --> booking : REST API\n(JSON)
 
 | Baustein | Verantwortlichkeit | Quellcode |
 |----------|-------------------|-----------|
-| **SPA** | Benutzeroberfläche für Buchungen, Kalenderansichten und Reports | `frontend/` |
-| **Booking Service** | Buchungslogik, Validierung, Konfliktprüfung, Auswertungsdaten | `backend/` |
+| **SPA** | Benutzeroberfläche für Buchungen, Kalenderansichten und Reports; hält die Ressourcen-Stammdaten (Standorte, Räume, Ausstattung) als Mock-Daten | `frontend/` |
+| **Booking Service** | Buchungslogik, Validierung, Konfliktprüfung, Auswertungsdaten; arbeitet ausschließlich mit den Ressourcen-IDs aus den SPA-Mock-Daten | `backend/` |
 
 ### Schnittstelle: SPA → Booking Service
 
 Die SPA kommuniziert mit dem Booking Service über eine REST API (JSON über HTTPS). Die API-Spezifikation wird als OpenAPI-Dokument im Backend gepflegt.
 
+Buchungen referenzieren Räume und Standorte über die **IDs** aus den SPA-Mock-Daten (siehe [ADR-002](../architektur/adrs/ADR-002-ressourcendaten-als-mock-in-der-spa.md)). Für die Authentifizierung nutzt der Prototyp **Basic-Auth ohne Passwörter** (siehe [ADR-003](../architektur/adrs/ADR-003-basic-auth-statt-okta-im-prototyp.md)); eine Okta-Integration wird erst zum Produktivgang nachgeliefert.
+
 ---
 
 ## Architekturentscheidungen
 
-Architekturentscheidungen sind als Architecture Decision Records (ADR) dokumentiert. Die ADRs findest du unter `docs/arc42/adrs/`.
+Architekturentscheidungen sind als Architecture Decision Records (ADR) dokumentiert. Die ADRs findest du unter `docs/arc42/adrs/` sowie – für die fortlaufende Architekturdokumentation – unter [`docs/architektur/adrs/`](../architektur/adrs/):
+
+- [ADR-001: Technologie-Stack für den Booking-Service](../architektur/adrs/ADR-001-technologie-stack-fuer-booking-service.md)
+- [ADR-002: Ressourcendaten als Mock-Daten in der SPA](../architektur/adrs/ADR-002-ressourcendaten-als-mock-in-der-spa.md)
+- [ADR-003: Basic-Auth ohne Passwörter statt Okta im Prototyp](../architektur/adrs/ADR-003-basic-auth-statt-okta-im-prototyp.md)
+
+Bewusst eingegangene Vereinfachungen sind unter [Technische Schulden](../architektur/technische-schulden.md) festgehalten.
 
 ---
 

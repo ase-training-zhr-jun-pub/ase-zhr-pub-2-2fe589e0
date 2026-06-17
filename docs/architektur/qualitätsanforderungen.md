@@ -162,5 +162,9 @@ Bewusst **nicht** als eigenes Szenario in dieser Übung enthalten, aber als rele
 
 - **Sicherheit / Zugriffsschutz** – Login sowie Autorisierung (nur eigene Buchungen
   ändern/stornieren). Als wichtig eingestuft, jedoch außerhalb der Top-5 dieser Übung.
+  Im Prototyp gilt **Basic-Auth ohne Passwörter** statt Okta
+  ([ADR-003](adrs/ADR-003-basic-auth-statt-okta-im-prototyp.md)); die fehlende echte
+  Authentifizierung ist als technische Schuld festgehalten
+  ([Technische Schulden](technische-schulden.md), TS-1).
 - **Erweiterbarkeit** – z. B. Aufnahme weiterer Standorte oder die spätere
   Arbeitsplatzbuchung.
