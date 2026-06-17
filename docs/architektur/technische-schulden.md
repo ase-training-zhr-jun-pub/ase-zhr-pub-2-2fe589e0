@@ -12,6 +12,7 @@ einen Tilgungs-Trigger.
 | TS-1 | Keine echte Authentifizierung (Basic-Auth ohne Passwörter) | [ADR-003](adrs/ADR-003-basic-auth-statt-okta-im-prototyp.md) | Produktivgang |
 | TS-2 | Ressourcen-Stammdaten nur als Mock in der SPA | [ADR-002](adrs/ADR-002-ressourcendaten-als-mock-in-der-spa.md) | Produktivgang |
 | TS-3 | Keine serverseitige Validierung der Ressourcen-IDs | [ADR-002](adrs/ADR-002-ressourcendaten-als-mock-in-der-spa.md) | Produktivgang |
+| TS-4 | Obsoletes Swift/Vapor-Setup noch im Repo | [ADR-004](adrs/ADR-004-fastapi-statt-vapor-im-prototyp.md) | Nächster Aufräum-Schritt |
 
 ---
 
@@ -63,3 +64,22 @@ SPA ab.
 
 **Geplante Tilgung:** Mit Einführung einer echten Ressourcen-Datenquelle (siehe TS-2) eine
 serverseitige Validierung der IDs im Booking-Service ergänzen.
+
+---
+
+## TS-4: Obsoletes Swift/Vapor-Setup noch im Repo
+
+**Quelle:** [ADR-004](adrs/ADR-004-fastapi-statt-vapor-im-prototyp.md)
+
+**Beschreibung:** Der Booking-Service wurde von Swift/Vapor auf Python/FastAPI umgestellt
+([ADR-004](adrs/ADR-004-fastapi-statt-vapor-im-prototyp.md)). Im Repo verbleiben noch
+Artefakte des alten Stacks: `scripts/install-sdk.sh` (Swiftly-Toolchain), `.swift-version`
+sowie die Swift-Bestandteile der Devcontainer-Konfiguration (`postCreateCommand` für
+`backend/Package.swift`, Swift-/LLDB-VS-Code-Extensions).
+
+**Auswirkung / Risiko:** Verwirrung über den tatsächlichen Stack; unnötige Toolchain-
+Installation bei Container-Erstellung; tote Referenzen auf nicht mehr existierende
+Swift-Dateien.
+
+**Geplante Tilgung:** Swift-spezifische Skripte, `.swift-version` und Devcontainer-Einträge
+entfernen bzw. durch ein Python-Setup ersetzen.

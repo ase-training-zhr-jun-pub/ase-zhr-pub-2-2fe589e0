@@ -1,5 +1,6 @@
 import { NavLink, Outlet } from "react-router-dom"
 import { CalendarDays, MapPin } from "lucide-react"
+import { BackendStatus } from "@/components/backend-status"
 import {
   Select,
   SelectContent,
@@ -98,6 +99,12 @@ export function AppLayout() {
       <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8 sm:px-6">
         <Outlet />
       </main>
+
+      <footer className="border-t">
+        <div className="mx-auto flex w-full max-w-6xl items-center justify-end px-4 py-3 sm:px-6">
+          <BackendStatus />
+        </div>
+      </footer>
     </div>
   )
 }

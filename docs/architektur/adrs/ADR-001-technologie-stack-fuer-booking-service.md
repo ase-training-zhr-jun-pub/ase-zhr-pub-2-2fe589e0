@@ -1,7 +1,12 @@
 # ADR-001: Technologie-Stack für den Booking-Service
 
-**Status:** Akzeptiert
+**Status:** Abgelöst durch [ADR-004](ADR-004-fastapi-statt-vapor-im-prototyp.md) (2026-06-17)
 **Datum:** 2026-06-17
+
+> **Hinweis:** Die hier getroffene Wahl **Swift/Vapor** wurde im Prototyp wieder revidiert.
+> Maßgeblich waren die langen Cold-Build-Zeiten von Vapor, die den Top-Treiber
+> *Vertrautheit/Tempo* unterliefen. Aktuell gilt **Python/FastAPI** — siehe
+> [ADR-004](ADR-004-fastapi-statt-vapor-im-prototyp.md).
 
 ## Kontext und Problemstellung
 
