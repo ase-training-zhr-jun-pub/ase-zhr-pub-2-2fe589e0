@@ -1,6 +1,6 @@
-import { useNavigate } from "react-router-dom"
+import { useState } from "react"
 import { de } from "date-fns/locale"
-import { CalendarIcon, Users } from "lucide-react"
+import { CalendarIcon, Check, Users } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Label } from "@/components/ui/label"
@@ -32,14 +32,30 @@ import {
   type Raum,
 } from "@/lib/mock-data"
 import { dateToIso, formatDatum, isoToDate } from "@/lib/date"
+import { cn } from "@/lib/utils"
 
 export function RaeumeFinden() {
   const { suche, setSuche } = useBooking()
-  const navigate = useNavigate()
+  const [selectedId, setSelectedId] = useState<string | null>(null)
 
   const standort = getStandort(suche.standortId)
   const raeume = getRaeumeByStandort(suche.standortId)
   const zeitraumGueltig = suche.endzeit > suche.startzeit
+
+  // Auswahl zurücksetzen, wenn sich die Suche ändert – ein nicht mehr
+  // sichtbarer oder belegter Raum soll nicht ausgewählt bleiben. State-Anpassung
+  // beim Rendern statt im Effect (React-Empfehlung "you might not need an effect").
+  const sucheKey = `${suche.standortId}|${suche.datum}|${suche.startzeit}|${suche.endzeit}`
+  const [letzteSuche, setLetzteSuche] = useState(sucheKey)
+  if (sucheKey !== letzteSuche) {
+    setLetzteSuche(sucheKey)
+    setSelectedId(null)
+  }
+
+  // Klick auf den bereits gewählten Raum hebt die Auswahl wieder auf.
+  function toggleAuswahl(raumId: string) {
+    setSelectedId((aktuell) => (aktuell === raumId ? null : raumId))
+  }
 
   return (
     <div className="space-y-6">
@@ -164,7 +180,8 @@ export function RaeumeFinden() {
               zeitraumGueltig &&
               istRaumVerfuegbar(raum.id, suche.datum, suche.startzeit, suche.endzeit)
             }
-            onAuswaehlen={() => navigate(`/raeume/${raum.id}`)}
+            selected={raum.id === selectedId}
+            onSelect={() => toggleAuswahl(raum.id)}
           />
         ))}
       </div>
@@ -172,17 +189,19 @@ export function RaeumeFinden() {
   )
 }
 
-function RaumKarte({
+export function RaumKarte({
   raum,
   verfuegbar,
-  onAuswaehlen,
+  selected,
+  onSelect,
 }: {
   raum: Raum
   verfuegbar: boolean
-  onAuswaehlen: () => void
+  selected: boolean
+  onSelect: () => void
 }) {
   return (
-    <Card className="flex flex-col">
+    <Card className={cn("flex flex-col", selected && "ring-2 ring-primary")}>
       <CardHeader>
         <div className="flex items-start justify-between gap-2">
           <CardTitle>{raum.name}</CardTitle>
@@ -201,9 +220,21 @@ function RaumKarte({
           className="w-full"
           variant={verfuegbar ? "default" : "outline"}
           disabled={!verfuegbar}
-          onClick={onAuswaehlen}
+          aria-pressed={verfuegbar ? selected : undefined}
+          onClick={onSelect}
         >
-          {verfuegbar ? "Auswählen" : "Nicht verfügbar"}
+          {verfuegbar ? (
+            selected ? (
+              <>
+                <Check className="size-4" />
+                Ausgewählt
+              </>
+            ) : (
+              "Auswählen"
+            )
+          ) : (
+            "Nicht verfügbar"
+          )}
         </Button>
       </CardFooter>
     </Card>
