@@ -16,8 +16,8 @@
 				"DavidAnson.vscode-markdownlint",
 				"bierner.markdown-mermaid",
 				"pomdtr.markdown-kroki",
-				"swiftlang.swift",
-				"vadimcn.vscode-lldb"
+				"swiftlang.swift-vscode",
+				"llvm-vs-code-extensions.lldb-dap"
 			]
 		}
 	},
