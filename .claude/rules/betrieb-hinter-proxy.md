@@ -53,3 +53,10 @@ absoluten `fetch("/api/...")`-Aufrufen.
 > Hinweis: `basePath` ist hier **nicht** geeignet, weil der Proxy den Pfad-Prefix beim
 > Weiterleiten entfernt — der Dev-Server würde die Seiten dann unter dem falschen Pfad
 > erwarten und 404 liefern.
+
+## Vite (Frontend-Prototyp)
+
+Das Frontend nutzt **Vite**, nicht Next.js. Dieselbe Proxy-Problematik (weiße Seite,
+404 auf `/@vite/client`, `/src/*.tsx`) tritt dort auf, der Fix unterscheidet sich aber.
+→ Skill **`vite-hinter-proxy`** (`.claude/skills/vite-hinter-proxy/`) enthält Ursache,
+verifizierte `vite.config.ts`-Konfiguration und Verifikationsschritte.
