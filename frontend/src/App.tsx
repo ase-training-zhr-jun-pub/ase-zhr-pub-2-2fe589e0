@@ -1,28 +1,28 @@
-import { Button } from "@/components/ui/button"
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
+import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom"
+import { AppLayout } from "@/components/app-layout"
+import { BookingProvider } from "@/lib/booking-context"
+import { Toaster } from "@/components/ui/sonner"
+import { RaeumeFinden } from "@/pages/raeume-finden"
+import { RaumDetail } from "@/pages/raum-detail"
+import { BuchungBestaetigung } from "@/pages/buchung-bestaetigung"
+import { MeineBuchungen } from "@/pages/meine-buchungen"
 
 function App() {
   return (
-    <div className="flex min-h-svh items-center justify-center bg-background p-8">
-      <Card className="w-full max-w-md">
-        <CardHeader>
-          <CardTitle>Calvin</CardTitle>
-          <CardDescription>INNOQ Raumbuchungssystem</CardDescription>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-4">
-          <p className="text-sm text-muted-foreground">
-            Du kannst jetzt mit dem Aufbau der UI
-            beginnen.
-          </p>
-        </CardContent>
-      </Card>
-    </div>
+    <BookingProvider>
+      <BrowserRouter>
+        <Routes>
+          <Route element={<AppLayout />}>
+            <Route path="/" element={<RaeumeFinden />} />
+            <Route path="/raeume/:raumId" element={<RaumDetail />} />
+            <Route path="/buchung/bestaetigung" element={<BuchungBestaetigung />} />
+            <Route path="/meine-buchungen" element={<MeineBuchungen />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Route>
+        </Routes>
+      </BrowserRouter>
+      <Toaster />
+    </BookingProvider>
   )
 }
 
