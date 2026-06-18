@@ -1,6 +1,7 @@
 import { useState } from "react"
+import { useNavigate } from "react-router-dom"
 import { de } from "date-fns/locale"
-import { CalendarIcon, Check, Users } from "lucide-react"
+import { CalendarIcon, Check, MapPin, Users } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Label } from "@/components/ui/label"
@@ -21,7 +22,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { AusstattungListe } from "@/components/ausstattung-badge"
-import { useBooking } from "@/lib/booking-context"
+import { useBooking, type Suche } from "@/lib/booking-context"
 import {
   berechneDauer,
   getRaeumeByStandort,
@@ -36,11 +37,18 @@ import { cn } from "@/lib/utils"
 
 export function RaeumeFinden() {
   const { suche, setSuche } = useBooking()
+  const navigate = useNavigate()
   const [selectedId, setSelectedId] = useState<string | null>(null)
 
   const standort = getStandort(suche.standortId)
   const raeume = getRaeumeByStandort(suche.standortId)
   const zeitraumGueltig = suche.endzeit > suche.startzeit
+
+  // Der aktuell ausgewählte Raum (immer aus der sichtbaren Trefferliste, da die
+  // Auswahl bei Änderung der Suche zurückgesetzt wird).
+  const selectedRaum = selectedId
+    ? raeume.find((r) => r.id === selectedId)
+    : undefined
 
   // Auswahl zurücksetzen, wenn sich die Suche ändert – ein nicht mehr
   // sichtbarer oder belegter Raum soll nicht ausgewählt bleiben. State-Anpassung
@@ -185,7 +193,82 @@ export function RaeumeFinden() {
           />
         ))}
       </div>
+
+      {/* Auswahl-Zusammenfassung & Bestätigung (CLVN-029 / CLVN-030).
+          Erscheint nur bei getroffener Auswahl und verschwindet wieder, sobald
+          die Auswahl aufgehoben oder die Suche geändert wird. */}
+      {selectedRaum && (
+        <AuswahlZusammenfassung
+          raum={selectedRaum}
+          suche={suche}
+          gueltig={zeitraumGueltig}
+          onBestaetigen={() => navigate(`/raeume/${selectedRaum.id}`)}
+        />
+      )}
     </div>
+  )
+}
+
+export function AuswahlZusammenfassung({
+  raum,
+  suche,
+  gueltig,
+  onBestaetigen,
+}: {
+  raum: Raum
+  suche: Suche
+  gueltig: boolean
+  onBestaetigen: () => void
+}) {
+  const standort = getStandort(raum.standortId)
+  return (
+    <Card className="border-primary lg:sticky lg:bottom-4">
+      <CardHeader>
+        <CardTitle>Deine Auswahl</CardTitle>
+      </CardHeader>
+      <CardContent className="grid gap-6 sm:grid-cols-2">
+        {/* Raumdetails */}
+        <div className="space-y-2">
+          <div className="flex items-center justify-between gap-2">
+            <span className="font-medium">{raum.name}</span>
+            <span className="flex items-center gap-1.5 text-sm text-muted-foreground">
+              <Users className="size-4" />
+              {raum.kapazitaet} Personen
+            </span>
+          </div>
+          <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+            <MapPin className="size-4" />
+            {standort?.name} · {raum.etage}
+          </div>
+          <AusstattungListe ausstattung={raum.ausstattung} />
+        </div>
+
+        {/* Zeitraum */}
+        <dl className="space-y-1.5 text-sm sm:border-l sm:pl-6">
+          <div className="flex justify-between gap-4">
+            <dt className="text-muted-foreground">Datum</dt>
+            <dd className="text-right font-medium">{formatDatum(suche.datum)}</dd>
+          </div>
+          <div className="flex justify-between gap-4">
+            <dt className="text-muted-foreground">Zeit</dt>
+            <dd className="font-medium">
+              {suche.startzeit}–{suche.endzeit}
+            </dd>
+          </div>
+          <div className="flex justify-between gap-4">
+            <dt className="text-muted-foreground">Dauer</dt>
+            <dd className="font-medium">
+              {berechneDauer(suche.startzeit, suche.endzeit)}
+            </dd>
+          </div>
+        </dl>
+      </CardContent>
+      <CardFooter>
+        <Button className="w-full" disabled={!gueltig} onClick={onBestaetigen}>
+          Auswahl bestätigen
+        </Button>
+      </CardFooter>
+    </Card>
   )
 }
 

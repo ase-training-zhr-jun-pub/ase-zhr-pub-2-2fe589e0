@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest"
 import { render, screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
-import { MemoryRouter } from "react-router-dom"
+import { MemoryRouter, Route, Routes } from "react-router-dom"
 import { RaeumeFinden } from "@/pages/raeume-finden"
 import { BookingProvider } from "@/lib/booking-context"
 
@@ -12,7 +12,11 @@ function renderSeite() {
   render(
     <BookingProvider>
       <MemoryRouter>
-        <RaeumeFinden />
+        <Routes>
+          <Route path="/" element={<RaeumeFinden />} />
+          {/* Ziel der Bestätigungs-Weiterleitung (CLVN-030), hier nur ein Stub. */}
+          <Route path="/raeume/:raumId" element={<div>Buchungsdetails-Seite</div>} />
+        </Routes>
       </MemoryRouter>
     </BookingProvider>,
   )
@@ -48,5 +52,43 @@ describe("RaeumeFinden – Raumauswahl in der Trefferliste", () => {
     expect(
       screen.queryByRole("button", { name: "Ausgewählt" }),
     ).not.toBeInTheDocument()
+  })
+})
+
+describe("RaeumeFinden – Auswahl-Zusammenfassung & Bestätigung (CLVN-029/030)", () => {
+  it("zeigt erst nach einer Auswahl die Zusammenfassung mit Zeitraum und Dauer", async () => {
+    renderSeite()
+
+    // Vor der Auswahl gibt es keine Zusammenfassung.
+    expect(screen.queryByText("Deine Auswahl")).not.toBeInTheDocument()
+
+    await userEvent.click(screen.getAllByRole("button", { name: "Auswählen" })[0])
+
+    expect(screen.getByText("Deine Auswahl")).toBeInTheDocument()
+    // Zeitraum und Dauer der Standard-Suche (09:00–10:30 = 1 h 30 min).
+    expect(screen.getByText("09:00–10:30")).toBeInTheDocument()
+    expect(screen.getByText("1 h 30 min")).toBeInTheDocument()
+  })
+
+  it("entfernt die Zusammenfassung, wenn die Auswahl aufgehoben wird", async () => {
+    renderSeite()
+
+    await userEvent.click(screen.getAllByRole("button", { name: "Auswählen" })[0])
+    expect(screen.getByText("Deine Auswahl")).toBeInTheDocument()
+
+    await userEvent.click(screen.getByRole("button", { name: "Ausgewählt" }))
+    expect(screen.queryByText("Deine Auswahl")).not.toBeInTheDocument()
+  })
+
+  it("leitet bei Bestätigung zur Buchungsdetails-Seite weiter", async () => {
+    renderSeite()
+
+    await userEvent.click(screen.getAllByRole("button", { name: "Auswählen" })[0])
+    const bestaetigen = screen.getByRole("button", { name: "Auswahl bestätigen" })
+    expect(bestaetigen).toBeEnabled()
+
+    await userEvent.click(bestaetigen)
+
+    expect(screen.getByText("Buchungsdetails-Seite")).toBeInTheDocument()
   })
 })
