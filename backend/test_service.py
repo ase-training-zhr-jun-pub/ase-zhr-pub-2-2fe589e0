@@ -20,6 +20,8 @@ def _frische_db():
     Tests die Daten zurücksetzen.
     """
     database.init_db()
+    # Läuft bewusst im Autocommit-Modus (isolation_level=None): ein einzelnes,
+    # sofort wirksames DELETE genügt zum Zurücksetzen — keine Transaktion nötig.
     database.get_connection().execute("DELETE FROM buchungen")
     yield
 

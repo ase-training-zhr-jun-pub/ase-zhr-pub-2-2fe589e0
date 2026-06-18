@@ -6,7 +6,9 @@ verhalten. Die eigenen Buchungen gehören dem Demo-Nutzer ``demo`` (= Basic-Auth
 Name der SPA); Fremdbelegungen laufen unter ``andere`` und dienen nur der
 Verfügbarkeitsprüfung.
 
-Hinweis: Im Prototyp ist „heute" der 2026-06-17.
+Hinweis: Die Fremdbelegungen (``b-2001``..``b-2003``) sind bewusst auf den festen
+Demo-Tag 2026-06-17 verankert, damit die Verfügbarkeitsprüfung reproduzierbar etwas
+„Belegtes" zeigt — sie bilden nicht das jeweils aktuelle „heute" ab.
 """
 
 import repository

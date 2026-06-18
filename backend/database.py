@@ -61,4 +61,7 @@ def init_db() -> None:
         "CREATE INDEX IF NOT EXISTS idx_buchungen_raum_datum "
         "ON buchungen (raum_id, datum)"
     )
+    # Im Autocommit-Modus (isolation_level=None) sind die DDL-Statements bereits
+    # wirksam; dieser commit() ist ein harmloser No-op und nur als Sicherheitsnetz
+    # belassen, falls isolation_level je wieder gesetzt wird.
     _conn.commit()
