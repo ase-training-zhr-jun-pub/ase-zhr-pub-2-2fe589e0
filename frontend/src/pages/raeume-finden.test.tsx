@@ -92,3 +92,159 @@ describe("RaeumeFinden – Auswahl-Zusammenfassung & Bestätigung (CLVN-029/030)
     expect(screen.getByText("Buchungsdetails-Seite")).toBeInTheDocument()
   })
 })
+
+describe("RaeumeFinden – Kapazitätsfilter (CLVN-004)", () => {
+  it("zeigt zunächst alle Köln-Räume (4 Räume)", () => {
+    renderSeite()
+    // Köln hat: Dom (12), Rheinauhafen (8), Hohenzollernbrücke (4), Flora (6)
+    // Ergebnisüberschrift: "4 Räume in Köln"
+    expect(screen.getByRole("heading", { level: 2 })).toHaveTextContent("4 Räume in Köln")
+  })
+
+  it("filtert auf Räume mit mindestens 8 Personen Kapazität", async () => {
+    renderSeite()
+
+    // Kapazitäts-Select öffnen und "8 Personen" wählen
+    const kapSelect = screen.getByRole("combobox", { name: "Mindestkapazität" })
+    await userEvent.click(kapSelect)
+    await userEvent.click(screen.getByRole("option", { name: "8 Personen" }))
+
+    // Nur Dom (12) und Rheinauhafen (8) übrig
+    expect(screen.getByRole("heading", { level: 2 })).toHaveTextContent("2 Räume in Köln")
+    expect(screen.getByText("Dom")).toBeInTheDocument()
+    expect(screen.getByText("Rheinauhafen")).toBeInTheDocument()
+    expect(screen.queryByText("Hohenzollernbrücke")).not.toBeInTheDocument()
+    expect(screen.queryByText("Flora")).not.toBeInTheDocument()
+  })
+
+  it("zeigt den aktiven Kapazitätsfilter als Badge an", async () => {
+    renderSeite()
+
+    const kapSelect = screen.getByRole("combobox", { name: "Mindestkapazität" })
+    await userEvent.click(kapSelect)
+    await userEvent.click(screen.getByRole("option", { name: "6 Personen" }))
+
+    expect(screen.getByText("≥ 6 Personen")).toBeInTheDocument()
+  })
+
+  it("entfernt den Kapazitätsfilter einzeln über das X im Badge", async () => {
+    renderSeite()
+
+    const kapSelect = screen.getByRole("combobox", { name: "Mindestkapazität" })
+    await userEvent.click(kapSelect)
+    await userEvent.click(screen.getByRole("option", { name: "8 Personen" }))
+
+    // Kapazitätsfilter über X-Button entfernen
+    await userEvent.click(
+      screen.getByRole("button", { name: "Kapazitätsfilter 8 Personen entfernen" }),
+    )
+
+    // Alle 4 Räume wieder sichtbar
+    expect(screen.getByRole("heading", { level: 2 })).toHaveTextContent("4 Räume in Köln")
+  })
+})
+
+describe("RaeumeFinden – Ausstattungsfilter (CLVN-005)", () => {
+  it("filtert auf Räume mit Videokonferenz", async () => {
+    renderSeite()
+
+    // "Videokonferenz"-Badge als Toggle aktivieren
+    await userEvent.click(screen.getByRole("button", { name: "Videokonferenz" }))
+
+    // Dom, Rheinauhafen haben Videokonferenz; Hohenzollernbrücke und Flora nicht
+    expect(screen.getByRole("heading", { level: 2 })).toHaveTextContent("2 Räume in Köln")
+    expect(screen.getByText("Dom")).toBeInTheDocument()
+    expect(screen.getByText("Rheinauhafen")).toBeInTheDocument()
+    expect(screen.queryByText("Hohenzollernbrücke")).not.toBeInTheDocument()
+    expect(screen.queryByText("Flora")).not.toBeInTheDocument()
+  })
+
+  it("kombiniert mehrere Ausstattungsmerkmale (UND-Verknüpfung)", async () => {
+    renderSeite()
+
+    // Videokonferenz UND Flipchart: nur Dom hat beides
+    await userEvent.click(screen.getByRole("button", { name: "Videokonferenz" }))
+    await userEvent.click(screen.getByRole("button", { name: "Flipchart" }))
+
+    expect(screen.getByRole("heading", { level: 2 })).toHaveTextContent("1 Räume in Köln")
+    expect(screen.getByText("Dom")).toBeInTheDocument()
+  })
+
+  it("zeigt aktive Ausstattungsfilter als Badges an", async () => {
+    renderSeite()
+
+    await userEvent.click(screen.getByRole("button", { name: "Beamer" }))
+
+    // Badge mit "Beamer" taucht im Aktiv-Filter-Bereich auf
+    // (es gibt jetzt zwei Elemente mit "Beamer": den Toggle-Button und das aktive Badge)
+    const beamerBadges = screen.getAllByText("Beamer")
+    expect(beamerBadges.length).toBeGreaterThanOrEqual(2)
+  })
+
+  it("entfernt einen Ausstattungsfilter einzeln über das X im Badge", async () => {
+    renderSeite()
+
+    await userEvent.click(screen.getByRole("button", { name: "Videokonferenz" }))
+    // Jetzt 2 Räume sichtbar
+
+    // X-Button zum Entfernen des Filters
+    await userEvent.click(
+      screen.getByRole("button", { name: "Ausstattungsfilter Videokonferenz entfernen" }),
+    )
+
+    // Alle 4 Räume wieder sichtbar
+    expect(screen.getByRole("heading", { level: 2 })).toHaveTextContent("4 Räume in Köln")
+  })
+})
+
+describe("RaeumeFinden – Kombinierte Filter & Zurücksetzen", () => {
+  it("kombiniert Kapazitäts- und Ausstattungsfilter", async () => {
+    renderSeite()
+
+    // Mindestens 8 Personen UND Whiteboard:
+    // Dom (12, hat Whiteboard) ✓, Rheinauhafen (8, hat Whiteboard) ✓,
+    // Hohenzollernbrücke (4 → fällt durch Kapazität raus),
+    // Flora (6 → fällt durch Kapazität raus)
+    const kapSelect = screen.getByRole("combobox", { name: "Mindestkapazität" })
+    await userEvent.click(kapSelect)
+    await userEvent.click(screen.getByRole("option", { name: "8 Personen" }))
+
+    await userEvent.click(screen.getByRole("button", { name: "Whiteboard" }))
+
+    expect(screen.getByRole("heading", { level: 2 })).toHaveTextContent("2 Räume in Köln")
+  })
+
+  it("setzt alle Filter über 'Filter zurücksetzen' zurück", async () => {
+    renderSeite()
+
+    const kapSelect = screen.getByRole("combobox", { name: "Mindestkapazität" })
+    await userEvent.click(kapSelect)
+    await userEvent.click(screen.getByRole("option", { name: "12 Personen" }))
+
+    await userEvent.click(screen.getByRole("button", { name: "Whiteboard" }))
+
+    // Nur noch 1 Raum (Dom: 12 Personen + Whiteboard)
+    expect(screen.getByRole("heading", { level: 2 })).toHaveTextContent("1 Räume in Köln")
+
+    // Zurücksetzen
+    await userEvent.click(screen.getByRole("button", { name: "Filter zurücksetzen" }))
+
+    // Alle 4 Räume wieder da
+    expect(screen.getByRole("heading", { level: 2 })).toHaveTextContent("4 Räume in Köln")
+    expect(screen.queryByText("Filter zurücksetzen")).not.toBeInTheDocument()
+  })
+
+  it("zeigt Leer-Meldung, wenn kein Raum den Filtern entspricht", async () => {
+    renderSeite()
+
+    // Unmögliche Kombination: ≥ 20 Personen in Köln → kein Raum
+    const kapSelect = screen.getByRole("combobox", { name: "Mindestkapazität" })
+    await userEvent.click(kapSelect)
+    await userEvent.click(screen.getByRole("option", { name: "20 Personen" }))
+
+    expect(screen.getByRole("status")).toHaveTextContent(
+      "Keine Räume gefunden. Bitte passe die Filter an.",
+    )
+    expect(screen.getByRole("heading", { level: 2 })).toHaveTextContent("0 Räume in Köln")
+  })
+})
