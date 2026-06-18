@@ -1,0 +1,15 @@
+# Nicht ins Image kopieren — kleiner Build-Kontext, reproduzierbares Image.
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+calvin.db
+test_*.py
+conftest.py
+requirements-dev.txt
+README.md
+CLAUDE.md
+Dockerfile
+.dockerignore
+.gitignore
