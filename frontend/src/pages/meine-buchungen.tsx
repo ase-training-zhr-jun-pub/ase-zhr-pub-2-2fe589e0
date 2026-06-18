@@ -1,6 +1,13 @@
 import { useState } from "react"
 import { Link } from "react-router-dom"
-import { CalendarDays, CalendarX2, ChevronRight, Clock, MapPin } from "lucide-react"
+import {
+  CalendarDays,
+  CalendarX2,
+  ChevronRight,
+  Clock,
+  MapPin,
+  Pencil,
+} from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -48,7 +55,7 @@ export function MeineBuchungen() {
             ) : (
               <div className="space-y-3">
                 {kommend.map((b) => (
-                  <BuchungZeile key={b.id} buchung={b} />
+                  <BuchungZeile key={b.id} buchung={b} aenderbar />
                 ))}
               </div>
             )}
@@ -75,9 +82,11 @@ export function MeineBuchungen() {
 function BuchungZeile({
   buchung,
   vergangen = false,
+  aenderbar = false,
 }: {
   buchung: Buchung
   vergangen?: boolean
+  aenderbar?: boolean
 }) {
   const { storniereBuchung } = useBooking()
   const raum = getRaum(buchung.raumId)
@@ -120,30 +129,46 @@ function BuchungZeile({
         {vergangen ? (
           <ChevronRight className="size-5 shrink-0 text-muted-foreground" />
         ) : (
-          <Popover open={popoverOffen} onOpenChange={setPopoverOffen}>
-            <PopoverTrigger
-              render={
-                <Button variant="outline" size="sm">
-                  Stornieren
-                </Button>
-              }
-            />
-            <PopoverContent className="w-64">
-              <p className="text-sm font-medium">Buchung wirklich stornieren?</p>
-              <div className="mt-3 flex justify-end gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setPopoverOffen(false)}
-                >
-                  Abbrechen
-                </Button>
-                <Button variant="destructive" size="sm" onClick={handleStornieren}>
-                  Stornieren
-                </Button>
-              </div>
-            </PopoverContent>
-          </Popover>
+          <div className="flex shrink-0 items-center gap-1">
+            {aenderbar && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="text-muted-foreground"
+                aria-label="Ändern"
+                nativeButton={false}
+                render={
+                  <Link to={`/buchung/${buchung.id}/bearbeiten`} aria-label="Ändern" />
+                }
+              >
+                <Pencil className="size-4" />
+              </Button>
+            )}
+            <Popover open={popoverOffen} onOpenChange={setPopoverOffen}>
+              <PopoverTrigger
+                render={
+                  <Button variant="outline" size="sm">
+                    Stornieren
+                  </Button>
+                }
+              />
+              <PopoverContent className="w-64">
+                <p className="text-sm font-medium">Buchung wirklich stornieren?</p>
+                <div className="mt-3 flex justify-end gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setPopoverOffen(false)}
+                  >
+                    Abbrechen
+                  </Button>
+                  <Button variant="destructive" size="sm" onClick={handleStornieren}>
+                    Stornieren
+                  </Button>
+                </div>
+              </PopoverContent>
+            </Popover>
+          </div>
         )}
       </CardContent>
     </Card>

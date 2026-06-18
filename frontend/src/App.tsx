@@ -6,6 +6,7 @@ import { RaeumeFinden } from "@/pages/raeume-finden"
 import { RaumDetail } from "@/pages/raum-detail"
 import { BuchungBestaetigung } from "@/pages/buchung-bestaetigung"
 import { MeineBuchungen } from "@/pages/meine-buchungen"
+import { BuchungBearbeiten } from "@/pages/buchung-bearbeiten"
 
 function App() {
   return (
@@ -16,6 +17,7 @@ function App() {
             <Route path="/" element={<RaeumeFinden />} />
             <Route path="/raeume/:raumId" element={<RaumDetail />} />
             <Route path="/buchung/bestaetigung" element={<BuchungBestaetigung />} />
+            <Route path="/buchung/:id/bearbeiten" element={<BuchungBearbeiten />} />
             <Route path="/meine-buchungen" element={<MeineBuchungen />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Route>

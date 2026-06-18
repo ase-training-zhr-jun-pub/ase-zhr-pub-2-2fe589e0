@@ -3,7 +3,7 @@
 // und die zuletzt abgesendete Buchung für die Bestätigungsseite.
 
 import { createContext, useContext, useMemo, useState, type ReactNode } from "react"
-import { BUCHUNGEN, HEUTE, type Buchung } from "@/lib/mock-data"
+import { BUCHUNGEN, HEUTE, istRaumVerfuegbar, type Buchung } from "@/lib/mock-data"
 
 export interface Suche {
   standortId: string
@@ -11,6 +11,16 @@ export interface Suche {
   startzeit: string
   endzeit: string
 }
+
+/** Felder, die bei einer Buchungsänderung aktualisiert werden können. */
+export type BuchungPatch = Partial<
+  Pick<Buchung, "datum" | "startzeit" | "endzeit" | "raumId" | "titel" | "notiz">
+>
+
+/** Ergebnis von aendereBuchung: Erfolg oder Fehler mit Grund. */
+export type AenderungErgebnis =
+  | { ok: true; buchung: Buchung }
+  | { ok: false; grund: string }
 
 interface BookingContextValue {
   suche: Suche
@@ -21,6 +31,12 @@ interface BookingContextValue {
   bucheRaum: (b: Omit<Buchung, "id">) => Buchung
   /** Entfernt eine Buchung aus der eigenen Liste und dem globalen Belegungsbestand. */
   storniereBuchung: (id: string) => void
+  /**
+   * Ändert eine bestehende Buchung (CLVN-027).
+   * Prüft die Verfügbarkeit des Zielraums – die zu ändernde Buchung selbst
+   * wird dabei nicht als Konflikt gewertet.
+   */
+  aendereBuchung: (id: string, patch: BuchungPatch) => AenderungErgebnis
   /** Zuletzt abgesendete Buchung (für die Bestätigungsseite). */
   letzteBuchung: Buchung | null
 }
@@ -60,6 +76,44 @@ export function BookingProvider({ children }: { children: ReactNode }) {
         const idx = BUCHUNGEN.findIndex((b) => b.id === id)
         if (idx !== -1) BUCHUNGEN.splice(idx, 1)
         setMeineBuchungen((prev) => prev.filter((b) => b.id !== id))
+      },
+      aendereBuchung: (id, patch) => {
+        // Aktuelle Buchung suchen
+        const alt = meineBuchungen.find((b) => b.id === id)
+        if (!alt) {
+          return { ok: false, grund: "Buchung nicht gefunden." }
+        }
+
+        const geaendert: Buchung = { ...alt, ...patch }
+
+        // Verfügbarkeitsprüfung: alte Buchung vorübergehend aus globalem Array entfernen,
+        // damit sie nicht als Konflikt mit sich selbst gewertet wird.
+        const altIdx = BUCHUNGEN.findIndex((b) => b.id === id)
+        if (altIdx !== -1) BUCHUNGEN.splice(altIdx, 1)
+
+        const verfuegbar = istRaumVerfuegbar(
+          geaendert.raumId,
+          geaendert.datum,
+          geaendert.startzeit,
+          geaendert.endzeit,
+        )
+
+        if (!verfuegbar) {
+          // Alte Buchung wieder einfügen und Fehler melden
+          if (altIdx !== -1) BUCHUNGEN.splice(altIdx, 0, alt)
+          return {
+            ok: false,
+            grund: "Der Raum ist im gewählten Zeitraum bereits belegt.",
+          }
+        }
+
+        // Globales Array mit geänderter Buchung aktualisieren
+        BUCHUNGEN.splice(altIdx, 0, geaendert)
+
+        // Eigene Buchungen aktualisieren
+        setMeineBuchungen((prev) => prev.map((b) => (b.id === id ? geaendert : b)))
+
+        return { ok: true, buchung: geaendert }
       },
       letzteBuchung,
     }),
