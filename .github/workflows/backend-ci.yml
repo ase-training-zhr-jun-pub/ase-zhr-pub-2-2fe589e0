@@ -1,0 +1,95 @@
+name: Backend CI/CD
+
+# Testet das Backend, reported die Testergebnisse, baut ein Docker-Image
+# und pusht es in die GitHub Container Registry (GHCR).
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "backend/**"
+      - ".github/workflows/backend-ci.yml"
+  pull_request:
+    paths:
+      - "backend/**"
+      - ".github/workflows/backend-ci.yml"
+
+jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      checks: write       # dorny/test-reporter legt einen Check-Run an
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Python einrichten
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+
+      - name: Abhängigkeiten installieren
+        run: pip install -r requirements.txt -r requirements-dev.txt
+
+      - name: Tests ausführen (JUnit-Report)
+        run: pytest --junitxml=junit/test-results.xml
+
+      - name: Testergebnisse reporten
+        uses: dorny/test-reporter@v2
+        if: always()        # auch bei fehlgeschlagenen Tests reporten
+        with:
+          name: Backend-Tests
+          path: backend/junit/test-results.xml
+          reporter: java-junit
+
+  build-and-push:
+    name: Docker-Image bauen & pushen
+    runs-on: ubuntu-latest
+    needs: test               # nur bei grünen Tests bauen
+    # Image nur bei Push auf main veröffentlichen, nicht bei jedem PR.
+    if: github.event_name == 'push'
+    permissions:
+      contents: read
+      packages: write         # Push nach GHCR
+    env:
+      REGISTRY: ghcr.io
+      IMAGE_NAME: ${{ github.repository }}/backend
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Bei GHCR anmelden
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Image-Metadaten/Tags ableiten
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=sha
+            type=ref,event=branch
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Buildx einrichten
+        uses: docker/setup-buildx-action@v3
+
+      - name: Image bauen & pushen
+        uses: docker/build-push-action@v6
+        with:
+          context: backend
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
