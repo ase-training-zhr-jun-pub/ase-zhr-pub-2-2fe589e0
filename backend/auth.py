@@ -31,6 +31,7 @@ def nutzer_id(authorization: str | None = Header(default=None)) -> str:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Ungültiger Authorization-Header.",
+            headers={"WWW-Authenticate": "Basic"},
         ) from fehler
 
     name = roh.split(":", 1)[0].strip()
@@ -38,5 +39,6 @@ def nutzer_id(authorization: str | None = Header(default=None)) -> str:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Kein Nutzername im Authorization-Header.",
+            headers={"WWW-Authenticate": "Basic"},
         )
     return name

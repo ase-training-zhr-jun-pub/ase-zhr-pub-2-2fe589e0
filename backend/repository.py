@@ -8,9 +8,20 @@ import sqlite3
 
 from schemas import Belegung, Buchung
 
-_SPALTEN = (
-    "id, nutzer_id, raum_id, standort_id, datum, von, bis, titel, notiz, erstellt_am"
+_SPALTEN_LISTE = (
+    "id",
+    "nutzer_id",
+    "raum_id",
+    "standort_id",
+    "datum",
+    "von",
+    "bis",
+    "titel",
+    "notiz",
+    "erstellt_am",
 )
+_SPALTEN = ", ".join(_SPALTEN_LISTE)
+_PLATZHALTER = ", ".join("?" for _ in _SPALTEN_LISTE)
 
 
 def _row_to_buchung(row: sqlite3.Row) -> Buchung:
@@ -54,21 +65,15 @@ def ueberschneidende(
 
 
 def insert(conn: sqlite3.Connection, buchung: Buchung) -> None:
-    """Fügt eine Buchung ein (ohne Commit — die Transaktion steuert der Aufrufer)."""
+    """Fügt eine Buchung ein (ohne Commit — die Transaktion steuert der Aufrufer).
+
+    Spaltenliste, Platzhalter und Werte werden alle aus ``_SPALTEN_LISTE``
+    abgeleitet; eine neue Spalte muss daher nur dort (und im Schema/Modell)
+    ergänzt werden.
+    """
     conn.execute(
-        f"INSERT INTO buchungen ({_SPALTEN}) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-        (
-            buchung.id,
-            buchung.nutzer_id,
-            buchung.raum_id,
-            buchung.standort_id,
-            buchung.datum,
-            buchung.von,
-            buchung.bis,
-            buchung.titel,
-            buchung.notiz,
-            buchung.erstellt_am,
-        ),
+        f"INSERT INTO buchungen ({_SPALTEN}) VALUES ({_PLATZHALTER})",
+        tuple(getattr(buchung, spalte) for spalte in _SPALTEN_LISTE),
     )
 
 

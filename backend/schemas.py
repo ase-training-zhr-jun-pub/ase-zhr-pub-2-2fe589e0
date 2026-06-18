@@ -5,7 +5,9 @@ lassen sich lexikografisch korrekt vergleichen (nullbasiert/zero-padded), was di
 Überschneidungsprüfung in SQL vereinfacht.
 """
 
-from pydantic import BaseModel, Field, model_validator
+from datetime import date
+
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 # 24-Stunden-Uhrzeit "HH:MM"
 ZEIT_MUSTER = r"^([01]\d|2[0-3]):[0-5]\d$"
@@ -27,6 +29,19 @@ class BuchungAnfrage(BaseModel):
     bis: str = Field(pattern=ZEIT_MUSTER)
     titel: str = Field(min_length=1, max_length=200)
     notiz: str | None = Field(default=None, max_length=2000)
+
+    @field_validator("datum")
+    @classmethod
+    def _datum_gueltig(cls, wert: str) -> str:
+        """Stellt sicher, dass das Datum ein echtes Kalenderdatum ist.
+
+        Das Regex-Muster prüft nur die Form; ``2026-13-99`` käme sonst durch.
+        """
+        try:
+            date.fromisoformat(wert)
+        except ValueError as fehler:
+            raise ValueError("datum ist kein gültiges Kalenderdatum") from fehler
+        return wert
 
     @model_validator(mode="after")
     def _bis_nach_von(self) -> "BuchungAnfrage":

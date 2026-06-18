@@ -70,15 +70,14 @@ def erstelle_buchung(nutzer_id: str, anfrage: BuchungAnfrage) -> Buchung:
             if repository.ueberschneidende(
                 conn, buchung.raum_id, buchung.datum, buchung.von, buchung.bis
             ):
-                conn.rollback()
                 raise DoppelbuchungError(
                     "Der Raum ist im gewählten Zeitraum bereits belegt."
                 )
             repository.insert(conn, buchung)
             conn.commit()
-        except DoppelbuchungError:
-            raise
         except Exception:
+            # Gilt auch für DoppelbuchungError: die offene Transaktion wird
+            # genau einmal zurückgerollt, dann fliegt die Ausnahme weiter.
             conn.rollback()
             raise
 
