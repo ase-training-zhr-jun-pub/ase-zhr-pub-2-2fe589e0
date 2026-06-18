@@ -18,7 +18,12 @@ from pathlib import Path
 # Fallback auf eine Datei neben diesem Modul.
 DB_PATH = os.environ.get("CALVIN_DB_PATH", str(Path(__file__).parent / "calvin.db"))
 
-_conn = sqlite3.connect(DB_PATH, check_same_thread=False)
+# isolation_level=None schaltet das implizite Transaktionsmanagement des
+# sqlite3-Moduls ab: Wir steuern Transaktionen ausschließlich selbst über
+# explizites ``BEGIN IMMEDIATE`` / ``commit`` / ``rollback`` im Service
+# (Doppelbuchungsschutz). Das vermeidet versions-/zustandsabhängige
+# "cannot start a transaction within a transaction"-Fehler.
+_conn = sqlite3.connect(DB_PATH, check_same_thread=False, isolation_level=None)
 _conn.row_factory = sqlite3.Row
 _lock = threading.Lock()
 

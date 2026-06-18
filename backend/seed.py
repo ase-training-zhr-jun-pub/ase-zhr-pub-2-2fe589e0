@@ -114,6 +114,13 @@ def seed_if_empty() -> None:
     conn = get_connection()
     if repository.anzahl(conn) > 0:
         return
-    for buchung in _SEED_BUCHUNGEN:
-        repository.insert(conn, buchung)
-    conn.commit()
+    # Explizite Transaktion: Die Verbindung läuft mit isolation_level=None
+    # (Autocommit), daher die Seeds atomar in eine Transaktion klammern.
+    conn.execute("BEGIN")
+    try:
+        for buchung in _SEED_BUCHUNGEN:
+            repository.insert(conn, buchung)
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise

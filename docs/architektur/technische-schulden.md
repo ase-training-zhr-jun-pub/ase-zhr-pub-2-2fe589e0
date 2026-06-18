@@ -12,6 +12,7 @@ einen Tilgungs-Trigger.
 | TS-1 | Keine echte Authentifizierung (Basic-Auth ohne Passwörter) | [ADR-003](adrs/ADR-003-basic-auth-statt-okta-im-prototyp.md) | Produktivgang |
 | TS-2 | Ressourcen-Stammdaten nur als Mock in der SPA | [ADR-002](adrs/ADR-002-ressourcendaten-als-mock-in-der-spa.md) | Produktivgang |
 | TS-3 | Keine serverseitige Validierung der Ressourcen-IDs | [ADR-002](adrs/ADR-002-ressourcendaten-als-mock-in-der-spa.md) | Produktivgang |
+| TS-4 | Doppelbuchungsschutz nur prozess-intern serialisiert | arc42 Kap. 10 (Qualitätsziel #1) | Mehrere Worker / horizontale Skalierung |
 
 ---
 
@@ -63,3 +64,25 @@ SPA ab.
 
 **Geplante Tilgung:** Mit Einführung einer echten Ressourcen-Datenquelle (siehe TS-2) eine
 serverseitige Validierung der IDs im Booking-Service ergänzen.
+
+---
+
+## TS-4: Doppelbuchungsschutz nur prozess-intern serialisiert
+
+**Quelle:** arc42 Kap. 10 (Qualitätsziel #1 „Zuverlässigkeit"), `backend/service.py`
+
+**Beschreibung:** Der Schutz gegen Doppelbuchungen kombiniert in `erstelle_buchung`
+eine atomare `BEGIN IMMEDIATE`-Transaktion auf SQLite-Ebene mit einem **prozessweiten**
+`threading.Lock` (`database.py`). Das Lock serialisiert konkurrierende Anfragen nur
+innerhalb **eines** Prozesses.
+
+**Auswirkung / Risiko:** Bei mehreren Worker-Prozessen (z. B. `uvicorn --workers N`)
+oder horizontaler Skalierung greift das Lock nicht prozessübergreifend. Die Korrektheit
+hängt dann allein an `BEGIN IMMEDIATE`, das auf der gemeinsamen SQLite-Datei zwar
+serialisiert, sich aber bei verteilten Setups (mehrere DB-Knoten) nicht halten lässt.
+Beim Wechsel auf mehrere Worker ist dies ein **stilles Risiko**.
+
+**Geplante Tilgung:** Vor dem Skalieren auf mehrere Prozesse/Knoten den
+Doppelbuchungsschutz auf einen DB-seitigen Mechanismus stützen (z. B. Unique-Constraint
+/ Exclusion-Constraint bzw. `SELECT … FOR UPDATE` einer Datenbank mit echter
+Mehrbenutzer-Nebenläufigkeit) und das In-Process-Lock entfernen.

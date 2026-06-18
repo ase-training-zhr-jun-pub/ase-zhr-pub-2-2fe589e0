@@ -47,6 +47,10 @@ def erstelle_buchung(nutzer_id: str, anfrage: BuchungAnfrage) -> Buchung:
     serialisiert. Damit kann selbst bei zwei zeitgleichen Anfragen für denselben
     Raum nur eine gewinnen — die zweite erhält ``DoppelbuchungError``.
 
+    Hinweis: Das Lock serialisiert nur prozessintern; bei mehreren Workern greift
+    nur die DB-seitige ``BEGIN IMMEDIATE``-Serialisierung (siehe TS-4 in
+    docs/architektur/technische-schulden.md).
+
     Raises:
         DoppelbuchungError: wenn der Zeitraum bereits (teilweise) belegt ist.
     """
