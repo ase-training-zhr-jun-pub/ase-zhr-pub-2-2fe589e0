@@ -1,7 +1,7 @@
 import { useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { de } from "date-fns/locale"
-import { CalendarIcon, Check, MapPin, Users } from "lucide-react"
+import { CalendarIcon, Check, MapPin, Users, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Label } from "@/components/ui/label"
@@ -21,7 +21,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { AusstattungListe } from "@/components/ausstattung-badge"
+import { Separator } from "@/components/ui/separator"
+import { AusstattungBadge, AusstattungListe } from "@/components/ausstattung-badge"
 import { useBooking, type Suche } from "@/lib/booking-context"
 import {
   berechneDauer,
@@ -30,19 +31,47 @@ import {
   istRaumVerfuegbar,
   STANDORTE,
   ZEITSLOTS,
+  type Ausstattung,
   type Raum,
 } from "@/lib/mock-data"
 import { dateToIso, formatDatum, isoToDate } from "@/lib/date"
 import { cn } from "@/lib/utils"
+
+/** Alle wählbaren Ausstattungsmerkmale (fest, entspricht dem Typ in mock-data). */
+const ALLE_AUSSTATTUNG: Ausstattung[] = [
+  "Bildschirm",
+  "Whiteboard",
+  "Videokonferenz",
+  "Beamer",
+  "Flipchart",
+  "Telefonkonferenz",
+]
+
+/** Stufen für den Kapazitätsfilter. 0 = kein Filter ("egal"). */
+const KAPAZITAETS_STUFEN = [0, 2, 4, 6, 8, 10, 12, 16, 20]
 
 export function RaeumeFinden() {
   const { suche, setSuche } = useBooking()
   const navigate = useNavigate()
   const [selectedId, setSelectedId] = useState<string | null>(null)
 
+  // Filter-State (lokal, kein BookingContext nötig)
+  const [minKapazitaet, setMinKapazitaet] = useState<number>(0)
+  const [ausstattungFilter, setAusstattungFilter] = useState<Ausstattung[]>([])
+
   const standort = getStandort(suche.standortId)
-  const raeume = getRaeumeByStandort(suche.standortId)
+  const alleRaeume = getRaeumeByStandort(suche.standortId)
   const zeitraumGueltig = suche.endzeit > suche.startzeit
+
+  // Gefilterte Räume für die Anzeige
+  const raeume = alleRaeume.filter((r) => {
+    if (minKapazitaet > 0 && r.kapazitaet < minKapazitaet) return false
+    if (ausstattungFilter.length > 0) {
+      const hatAlles = ausstattungFilter.every((a) => r.ausstattung.includes(a))
+      if (!hatAlles) return false
+    }
+    return true
+  })
 
   // Der aktuell ausgewählte Raum (immer aus der sichtbaren Trefferliste, da die
   // Auswahl bei Änderung der Suche zurückgesetzt wird).
@@ -64,6 +93,22 @@ export function RaeumeFinden() {
   function toggleAuswahl(raumId: string) {
     setSelectedId((aktuell) => (aktuell === raumId ? null : raumId))
   }
+
+  function toggleAusstattung(a: Ausstattung) {
+    setAusstattungFilter((prev) =>
+      prev.includes(a) ? prev.filter((x) => x !== a) : [...prev, a],
+    )
+    // Auswahl aufheben, da sich die Trefferliste ändern kann
+    setSelectedId(null)
+  }
+
+  function filterZuruecksetzen() {
+    setMinKapazitaet(0)
+    setAusstattungFilter([])
+    setSelectedId(null)
+  }
+
+  const filterAktiv = minKapazitaet > 0 || ausstattungFilter.length > 0
 
   return (
     <div className="space-y-6">
@@ -167,6 +212,104 @@ export function RaeumeFinden() {
               : "Endzeit muss nach der Startzeit liegen"}
           </div>
         </CardContent>
+
+        <Separator />
+
+        {/* Kapazitäts- und Ausstattungsfilter */}
+        <CardContent className="flex flex-col gap-4 pt-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-start">
+            {/* Kapazitätsfilter */}
+            <div className="flex flex-col gap-1.5">
+              <Label>Mindestkapazität</Label>
+              <Select
+                value={String(minKapazitaet)}
+                onValueChange={(v) => {
+                  setMinKapazitaet(Number(v))
+                  setSelectedId(null)
+                }}
+              >
+                <SelectTrigger className="w-full sm:w-[160px]" aria-label="Mindestkapazität">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {KAPAZITAETS_STUFEN.map((k) => (
+                    <SelectItem key={k} value={String(k)}>
+                      {k === 0 ? "egal" : `${k} Personen`}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Ausstattungsfilter */}
+            <div className="flex flex-col gap-1.5 flex-1">
+              <Label>Ausstattung</Label>
+              <div className="flex flex-wrap gap-1.5" role="group" aria-label="Ausstattungsfilter">
+                {ALLE_AUSSTATTUNG.map((a) => {
+                  const aktiv = ausstattungFilter.includes(a)
+                  return (
+                    <button
+                      key={a}
+                      type="button"
+                      aria-pressed={aktiv}
+                      onClick={() => toggleAusstattung(a)}
+                      className="cursor-pointer rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    >
+                      <Badge
+                        variant={aktiv ? "default" : "secondary"}
+                        className="gap-1 font-normal pointer-events-none"
+                      >
+                        {a}
+                      </Badge>
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          </div>
+
+          {/* Aktive Filter + Zurücksetzen */}
+          {filterAktiv && (
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-sm text-muted-foreground">Aktive Filter:</span>
+              {minKapazitaet > 0 && (
+                <Badge variant="outline" className="gap-1">
+                  ≥ {minKapazitaet} Personen
+                  <button
+                    type="button"
+                    aria-label={`Kapazitätsfilter ${minKapazitaet} Personen entfernen`}
+                    onClick={() => {
+                      setMinKapazitaet(0)
+                      setSelectedId(null)
+                    }}
+                  >
+                    <X className="size-3" />
+                  </button>
+                </Badge>
+              )}
+              {ausstattungFilter.map((a) => (
+                <Badge key={a} variant="outline" className="gap-1">
+                  {a}
+                  <button
+                    type="button"
+                    aria-label={`Ausstattungsfilter ${a} entfernen`}
+                    onClick={() => toggleAusstattung(a)}
+                  >
+                    <X className="size-3" />
+                  </button>
+                </Badge>
+              ))}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={filterZuruecksetzen}
+                aria-label="Filter zurücksetzen"
+              >
+                Filter zurücksetzen
+              </Button>
+            </div>
+          )}
+        </CardContent>
       </Card>
 
       {/* Ergebnis */}
@@ -179,20 +322,26 @@ export function RaeumeFinden() {
         </span>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {raeume.map((raum) => (
-          <RaumKarte
-            key={raum.id}
-            raum={raum}
-            verfuegbar={
-              zeitraumGueltig &&
-              istRaumVerfuegbar(raum.id, suche.datum, suche.startzeit, suche.endzeit)
-            }
-            selected={raum.id === selectedId}
-            onSelect={() => toggleAuswahl(raum.id)}
-          />
-        ))}
-      </div>
+      {raeume.length === 0 ? (
+        <p className="text-muted-foreground text-sm" role="status">
+          Keine Räume gefunden. Bitte passe die Filter an.
+        </p>
+      ) : (
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {raeume.map((raum) => (
+            <RaumKarte
+              key={raum.id}
+              raum={raum}
+              verfuegbar={
+                zeitraumGueltig &&
+                istRaumVerfuegbar(raum.id, suche.datum, suche.startzeit, suche.endzeit)
+              }
+              selected={raum.id === selectedId}
+              onSelect={() => toggleAuswahl(raum.id)}
+            />
+          ))}
+        </div>
+      )}
 
       {/* Auswahl-Zusammenfassung & Bestätigung (CLVN-029 / CLVN-030).
           Erscheint nur bei getroffener Auswahl und verschwindet wieder, sobald
@@ -336,3 +485,5 @@ export function VerfuegbarkeitBadge({ verfuegbar }: { verfuegbar: boolean }) {
   )
 }
 
+// Re-Export für Tests und andere Seiten
+export { AusstattungBadge }
