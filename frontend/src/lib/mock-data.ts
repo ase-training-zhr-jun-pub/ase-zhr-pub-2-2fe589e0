@@ -414,7 +414,7 @@ function toMinutes(zeit: string): number {
 }
 
 /** Prüft, ob sich zwei Zeitintervalle überschneiden. */
-function ueberschneidet(
+export function ueberschneidet(
   start1: string,
   end1: string,
   start2: string,
