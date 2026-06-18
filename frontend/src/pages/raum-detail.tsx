@@ -1,6 +1,6 @@
 import { useState } from "react"
 import { Link, useNavigate, useParams } from "react-router-dom"
-import { ChevronLeft, ImageIcon, MapPin, Users } from "lucide-react"
+import { ChevronLeft, Clock, ImageIcon, MapPin, Users } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   Card,
@@ -20,13 +20,110 @@ import {
   getRaum,
   getStandort,
   istRaumVerfuegbar,
+  ZEITSLOTS,
 } from "@/lib/mock-data"
 import { formatDatumLang } from "@/lib/date"
+
+// ---------------------------------------------------------------------------
+// Lokale Helfer für Zeitarithmetik
+// ---------------------------------------------------------------------------
+
+/** Wandelt "HH:MM" in Minuten seit Mitternacht. */
+function zeitZuMinuten(zeit: string): number {
+  const [h, m] = zeit.split(":").map(Number)
+  return h * 60 + m
+}
+
+/** Wandelt Minuten seit Mitternacht in "HH:MM". */
+function minutenZuZeit(minuten: number): string {
+  const h = Math.floor(minuten / 60)
+  const m = minuten % 60
+  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`
+}
+
+// ---------------------------------------------------------------------------
+// Komponente: alternative Zeitfenster
+// ---------------------------------------------------------------------------
+
+interface AlternativeZeitfensterProps {
+  raumId: string
+  datum: string
+  wunschStart: string
+  wunschEnde: string
+  onAuswahl: (startzeit: string, endzeit: string) => void
+}
+
+function AlternativeZeitfenster({
+  raumId,
+  datum,
+  wunschStart,
+  wunschEnde,
+  onAuswahl,
+}: AlternativeZeitfensterProps) {
+  const dauerMinuten =
+    zeitZuMinuten(wunschEnde) - zeitZuMinuten(wunschStart)
+  const wunschStartMin = zeitZuMinuten(wunschStart)
+  const bueroEndeMin = zeitZuMinuten("19:00")
+
+  // Kandidaten: alle ZEITSLOTS, deren Endzeit <= 19:00 und die verfügbar sind
+  const kandidaten = ZEITSLOTS.filter((slot) => {
+    const startMin = zeitZuMinuten(slot)
+    const endeMin = startMin + dauerMinuten
+    if (endeMin > bueroEndeMin) return false
+    const ende = minutenZuZeit(endeMin)
+    return istRaumVerfuegbar(raumId, datum, slot, ende)
+  })
+
+  if (kandidaten.length === 0) {
+    return (
+      <p className="text-sm text-muted-foreground">
+        Keine alternativen Zeitfenster am selben Tag verfügbar.
+      </p>
+    )
+  }
+
+  // Sortiere nach zeitlicher Nähe zum Wunsch-Start, zeige die nächsten 3
+  const naechste = kandidaten
+    .slice()
+    .sort(
+      (a, b) =>
+        Math.abs(zeitZuMinuten(a) - wunschStartMin) -
+        Math.abs(zeitZuMinuten(b) - wunschStartMin),
+    )
+    .slice(0, 3)
+
+  return (
+    <div className="space-y-2">
+      <p className="text-sm font-medium">Alternative Zeitfenster:</p>
+      <div className="flex flex-wrap gap-2">
+        {naechste.map((slot) => {
+          const ende = minutenZuZeit(zeitZuMinuten(slot) + dauerMinuten)
+          return (
+            <Button
+              key={slot}
+              variant="outline"
+              size="sm"
+              className="flex items-center gap-1.5"
+              onClick={() => onAuswahl(slot, ende)}
+            >
+              <Clock className="size-3.5" />
+              {slot}–{ende}
+            </Button>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Hauptkomponente
+// ---------------------------------------------------------------------------
 
 export function RaumDetail() {
   const { raumId } = useParams()
   const navigate = useNavigate()
-  const { suche, bucheRaum } = useBooking()
+  const { suche, setSuche, bucheRaum } = useBooking()
 
   const [titel, setTitel] = useState("")
   const [notiz, setNotiz] = useState("")
@@ -170,10 +267,22 @@ export function RaumDetail() {
             </div>
 
             {!verfuegbar && (
-              <p className="text-sm text-destructive">
-                Dieser Raum ist im gewählten Zeitraum belegt. Bitte wähle einen
-                anderen Raum oder Zeitraum.
-              </p>
+              <div className="space-y-3 rounded-md border border-destructive/30 bg-destructive/5 p-3">
+                <p className="text-sm text-destructive">
+                  Dieser Raum ist im gewählten Zeitraum belegt. Bitte wähle einen
+                  anderen Raum oder Zeitraum.
+                </p>
+                {/* CLVN-012: Alternative Zeitfenster */}
+                <AlternativeZeitfenster
+                  raumId={raum.id}
+                  datum={suche.datum}
+                  wunschStart={suche.startzeit}
+                  wunschEnde={suche.endzeit}
+                  onAuswahl={(startzeit, endzeit) =>
+                    setSuche({ startzeit, endzeit })
+                  }
+                />
+              </div>
             )}
 
             <Button className="w-full" disabled={!absendbar} onClick={absenden}>
