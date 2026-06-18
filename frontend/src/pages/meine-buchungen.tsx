@@ -1,8 +1,15 @@
+import { useState } from "react"
 import { Link } from "react-router-dom"
 import { CalendarDays, CalendarX2, ChevronRight, Clock, MapPin } from "lucide-react"
+import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover"
 import { useBooking } from "@/lib/booking-context"
 import { getRaum, getStandort, HEUTE, type Buchung } from "@/lib/mock-data"
 import { formatDatum } from "@/lib/date"
@@ -72,8 +79,16 @@ function BuchungZeile({
   buchung: Buchung
   vergangen?: boolean
 }) {
+  const { storniereBuchung } = useBooking()
   const raum = getRaum(buchung.raumId)
   const standort = raum ? getStandort(raum.standortId) : undefined
+  const [popoverOffen, setPopoverOffen] = useState(false)
+
+  function handleStornieren() {
+    storniereBuchung(buchung.id)
+    setPopoverOffen(false)
+    toast.success(`Buchung "${buchung.titel}" wurde storniert.`)
+  }
 
   return (
     <Card className={vergangen ? "opacity-70" : undefined}>
@@ -102,7 +117,34 @@ function BuchungZeile({
             </span>
           </div>
         </div>
-        <ChevronRight className="size-5 shrink-0 text-muted-foreground" />
+        {vergangen ? (
+          <ChevronRight className="size-5 shrink-0 text-muted-foreground" />
+        ) : (
+          <Popover open={popoverOffen} onOpenChange={setPopoverOffen}>
+            <PopoverTrigger
+              render={
+                <Button variant="outline" size="sm">
+                  Stornieren
+                </Button>
+              }
+            />
+            <PopoverContent className="w-64">
+              <p className="text-sm font-medium">Buchung wirklich stornieren?</p>
+              <div className="mt-3 flex justify-end gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPopoverOffen(false)}
+                >
+                  Abbrechen
+                </Button>
+                <Button variant="destructive" size="sm" onClick={handleStornieren}>
+                  Stornieren
+                </Button>
+              </div>
+            </PopoverContent>
+          </Popover>
+        )}
       </CardContent>
     </Card>
   )

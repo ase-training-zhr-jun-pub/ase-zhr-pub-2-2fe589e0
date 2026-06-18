@@ -19,6 +19,8 @@ interface BookingContextValue {
   meineBuchungen: Buchung[]
   /** Legt eine neue Buchung an und gibt sie zurück. */
   bucheRaum: (b: Omit<Buchung, "id">) => Buchung
+  /** Entfernt eine Buchung aus der eigenen Liste und dem globalen Belegungsbestand. */
+  storniereBuchung: (id: string) => void
   /** Zuletzt abgesendete Buchung (für die Bestätigungsseite). */
   letzteBuchung: Buchung | null
 }
@@ -52,6 +54,12 @@ export function BookingProvider({ children }: { children: ReactNode }) {
         setMeineBuchungen((prev) => [...prev, neu])
         setLetzteBuchung(neu)
         return neu
+      },
+      storniereBuchung: (id) => {
+        // Aus dem globalen Belegungsbestand entfernen (Raum wird wieder verfügbar)
+        const idx = BUCHUNGEN.findIndex((b) => b.id === id)
+        if (idx !== -1) BUCHUNGEN.splice(idx, 1)
+        setMeineBuchungen((prev) => prev.filter((b) => b.id !== id))
       },
       letzteBuchung,
     }),
